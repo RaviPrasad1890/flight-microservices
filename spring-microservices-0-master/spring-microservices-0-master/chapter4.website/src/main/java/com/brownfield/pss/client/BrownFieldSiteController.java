@@ -19,11 +19,16 @@ import org.springframework.web.client.RestTemplate;
 public class BrownFieldSiteController {
 	private static final Logger logger = LoggerFactory.getLogger(BrownFieldSiteController.class);
 
-  	RestTemplate searchClient = new RestTemplate();
-
-  	RestTemplate bookingClient = new RestTemplate();
-
-  	RestTemplate checkInClient = new RestTemplate();
+	/*
+	 * RestTemplate searchClient = new RestTemplate();
+	 * 
+	 * RestTemplate bookingClient = new RestTemplate();
+	 * 
+	 * RestTemplate checkInClient = new RestTemplate();
+	 */
+	
+	@Autowired 
+	RestTemplate restClient;
 	
     @RequestMapping(value="/", method=RequestMethod.GET)
     public String greetingForm(Model model) {
@@ -36,7 +41,16 @@ public class BrownFieldSiteController {
 
    @RequestMapping(value="/search", method=RequestMethod.POST)
    public String greetingSubmit(@ModelAttribute UIData uiData, Model model) {
-		Flight[] flights = searchClient.postForObject("http://localhost:8090/search/get", uiData.getSearchQuery(), Flight[].class); 
+		//Flight[] flights = searchClient.postForObject("http://localhost:8090/search/get", uiData.getSearchQuery(), Flight[].class); 
+		/*
+		 * Using service_id to communicate with search service
+		 */
+	   //Flight[] flights = restClient.postForObject("http://search-service/search/get", uiData.getSearchQuery(), Flight[].class);
+	   
+	   /*
+	    * Using API gateway to communicate with search api
+	    */
+	   Flight[] flights = restClient.postForObject("http://apigateway/search-api/search/get", uiData.getSearchQuery(), Flight[].class);
 		uiData.setFlights(Arrays.asList(flights));
 		model.addAttribute("uidata", uiData);
        return "result";
@@ -69,8 +83,9 @@ public class BrownFieldSiteController {
 	 		booking.setPassengers(passengers);
 		long bookingId =0;
 		try { 
-			//long bookingId = bookingClient.postForObject("http://book-service/booking/create", booking, long.class); 
-			 bookingId = bookingClient.postForObject("http://localhost:8060/booking/create", booking, long.class); 
+				bookingId = restClient.postForObject("http://apigateway/book-api/booking/create", booking, long.class); 
+			 //bookingId = restClient.postForObject("http://book-service/booking/create", booking, long.class); //Service_Id for communication
+			 //bookingId = bookingClient.postForObject("http://localhost:8060/booking/create", booking, long.class); 
 			logger.info("Booking created "+ bookingId);
 		}catch (Exception e){
 			logger.error("BOOKING SERVICE NOT AVAILABLE...!!!");
@@ -89,7 +104,9 @@ public class BrownFieldSiteController {
 	@RequestMapping(value="/search-booking-get", method=RequestMethod.POST)
 	public String searchBookingSubmit(@ModelAttribute UIData uiData, Model model) {
 		Long id = new Long(uiData.getBookingid());
- 		BookingRecord booking = bookingClient.getForObject("http://localhost:8060/booking/get/"+id, BookingRecord.class);
+ 		//BookingRecord booking = bookingClient.getForObject("http://localhost:8060/booking/get/"+id, BookingRecord.class);
+ 		//BookingRecord booking = restClient.getForObject("http://book-service/booking/get/"+id, BookingRecord.class);//service-id
+		BookingRecord booking = restClient.getForObject("http://apigateway/book-api/booking/get/"+id, BookingRecord.class);
 		Flight flight = new Flight(booking.getFlightNumber(), booking.getOrigin(),booking.getDestination()
 				,booking.getFlightDate(),new Fares(booking.getFare(),"AED"));
 		Passenger pax = booking.getPassengers().iterator().next();
@@ -117,7 +134,8 @@ public class BrownFieldSiteController {
 			CheckInRecord checkIn = new CheckInRecord(firstName, lastName, "28C", null,
 					  									flightDate,flightDate, new Long(bookingid).longValue());
 
-			long checkinId = checkInClient.postForObject("http://localhost:8070/checkin/create", checkIn, long.class); 
+			long checkinId = restClient.postForObject("http://checkin-service/checkin/create", checkIn, long.class); //service_id
+			//long checkinId = checkInClient.postForObject("http://localhost:8070/checkin/create", checkIn, long.class); 
 	   		model.addAttribute("message","Checked In, Seat Number is 28c , checkin id is "+ checkinId);
 	       return "checkinconfirm"; 
 	}	
