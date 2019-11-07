@@ -35,6 +35,11 @@ class SearchRestController {
 		this.searchComponent = searchComponent;
 	}
 	
+	@RequestMapping("/hub")
+	public String hub() {
+		return "It is working... Service is up and running...";
+	}
+	
 	@RequestMapping(value="/get", method = RequestMethod.POST)
 	List<Flight> search(@RequestBody SearchQuery query){
 		logger.info("originAirportShutdownList "+originAirportShutdownList);
